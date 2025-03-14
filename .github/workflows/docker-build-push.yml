@@ -1,30 +1,52 @@
-name: Build and Push to ECR
+name: Build and Push Docker Image to ECR
 
 on:
   push:
     branches:
-      - main  # Triggers workflow when code is pushed to main
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:  # Allows manual execution
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      # Step 1: Checkout Code
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      - name: Log in to AWS ECR
+      # Step 2: Configure AWS Credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Step 3: Log in to AWS ECR
+      - name: Log in to Amazon ECR
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
         with:
-           region: ${{ secrets.AWS_REGION }}
+          region: ${{ secrets.AWS_REGION }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      # Step 4: Build and Tag Docker Image
+      - name: Build Docker Image
+        run: |
+          docker build -t my-app:latest .
 
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+      # Step 5: Tag Image with ECR Repository URL
+      - name: Tag Docker Image
+        run: |
+          ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/my-app"
+          docker tag my-app:latest $ECR_REPO:latest
+
+      # Step 6: Push Image to AWS ECR
+      - name: Push Docker Image to ECR
+        run: |
+          ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/my-app"
+          docker push $ECR_REPO:latest
+
