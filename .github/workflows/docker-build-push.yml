@@ -44,6 +44,6 @@ jobs:
       - name: Push Docker Image to ECR
         run: |
           IMAGE_TAG="latest"
-          REPO_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/my-repo"
+          REPO_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/my-app"
           docker tag my-app:latest $REPO_URI:$IMAGE_TAG
           docker push $REPO_URI:$IMAGE_TAG
