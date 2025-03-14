@@ -1,4 +1,4 @@
-name: Build and Push Docker Image to ECR
+name: Build and Push Docker Image
 
 on:
   push:
@@ -7,46 +7,43 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:  # Allows manual execution
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout Code
-      - name: Checkout repository
+      # Step 1: Checkout the repository
+      - name: Checkout Code
         uses: actions/checkout@v2
 
-      # Step 2: Configure AWS Credentials
+      # Step 2: Set up AWS credentials
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: us-east-1
 
-      # Step 3: Log in to AWS ECR
+      # Step 3: Log in to Amazon ECR
       - name: Log in to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-        with:
-          region: ${{ secrets.AWS_REGION }}
 
-      # Step 4: Build and Tag Docker Image
+      # Step 4: Build and tag the Docker image
       - name: Build Docker Image
         run: |
-          docker build -t my-app:latest .
+          docker build --build-arg PIP_NO_CACHE_DIR=1 -t my-app .
 
-      # Step 5: Tag Image with ECR Repository URL
-      - name: Tag Docker Image
+      # Step 5: Run a container to check dependencies installation (Debug Mode)
+      - name: Debug Dependencies Installation
         run: |
-          ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/my-app"
-          docker tag my-app:latest $ECR_REPO:latest
+          docker run --rm my-app pip install -r requirements.txt --verbose
 
-      # Step 6: Push Image to AWS ECR
+      # Step 6: Push the image to ECR
       - name: Push Docker Image to ECR
         run: |
-          ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/my-app"
-          docker push $ECR_REPO:latest
-
+          IMAGE_TAG="latest"
+          REPO_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/my-repo"
+          docker tag my-app:latest $REPO_URI:$IMAGE_TAG
+          docker push $REPO_URI:$IMAGE_TAG
