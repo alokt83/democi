@@ -1,17 +1,20 @@
-# Use an official Python image
-FROM python:3.9
+# Base image
+FROM python:3.9-slim
 
 # Set working directory
 WORKDIR /app
 
-# Copy files
-COPY requirements.txt ./
+# Copy the static requirements.txt from the repo to the container
+COPY requirements.txt /app/requirements.txt
 
-# Install dependencies
+# Install dependencies from requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app code
-COPY . .
+# Copy application code
+COPY . /app
+
+# Expose port for the app
+EXPOSE 5000
 
 # Command to run the app
 CMD ["python", "app.py"]
